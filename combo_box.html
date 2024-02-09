@@ -1,0 +1,212 @@
+{#  HOW TO IMPORT COMPONENT:
+
+    {% from "components/inputs/query_box.html" import query_box with context %}
+    {{ query_box("field01", "Busca Paciente", form.patient_name, "Digite aqui", False, item_list, True) }}
+#}
+
+
+
+{% macro query_box(unique_id, label, form_field, place_holder, autofocus, item_list, editable=True) %}
+
+<div style="position: relative;">
+<div class="live-search-box">
+            <label>{{ label }}</label>
+
+            <table id="clinicInput">
+                    <tr>
+                        <td style="width:96%">
+                            <div class="input-group" style="width: 100%;">
+                                {% if editable %}
+                                    {% if autofocus %}
+                                        {{ form_field(
+                                            class="live-search-box form-control select-dark-ajust lst-" ~ unique_id,
+                                            placeholder=place_holder,
+                                            style="width: 100%",
+                                            autofocus=True) }}
+                                    {% else %}
+                                        {{ form_field(class="live-search-box form-control select-dark-ajust lst-" ~ unique_id, placeholder=place_holder, style="width: 100%") }}
+                                    {% endif %}
+                                {% else %}
+                                    {% if autofocus %}
+                                        {{ form_field(
+                                            class="live-search-box form-control select-dark-ajust lst-" ~ unique_id,
+                                            placeholder=place_holder,
+                                            style="width: 100%; background-color: white; color: black; border: 1px solid #ced4da; opacity:1;",
+                                            readonly=True) }}
+                                    {% else %}
+                                        {{ form_field(
+                                            class="live-search-box form-control select-dark-ajust lst-" ~ unique_id,
+                                            placeholder=place_holder,
+                                            style="width: 100%; background-color: white; color: black; border: 1px solid #ced4da; opacity:1;",
+                                            readonly=True) }}
+                                    {% endif %}
+                                {% endif %}
+                            </div>
+                        </td>
+                        <td style="width:4%">
+                            <div class="btn-group">
+                                <button id="drop-down-{{ unique_id }}" style="width:50px; height:34px;" type="button" class="btn bt-white" onclick="resetSearch{{ unique_id }}()"> <span class="glyphicon glyphicon-triangle-bottom" style="font-size: 16px; position: relative; top: -10px;"></span> </button>
+                            </div>
+
+                        </td>
+                    </tr>
+                </table>
+
+
+</div>
+
+        {% if autofocus %}
+
+            <div id="options-{{ unique_id }}" style="position: absolute; z-index: 200; width:100%; max-height:400px; overflow: auto; box-shadow: 0px 2px 8px rgba(0, 0, 0, 0.2); display: block;">
+                <div id="list-for-search{{ unique_id}}" class="live-search-list list-group ls-{{ unique_id }}">
+                    {% for item in item_list %}
+                        <div style="color: black;" id="option-{{ unique_id }}-{{ loop.index }}" class="option list-group-item destac opt-{{ unique_id }}" tabindex="-1">{{ item }}</div>
+                    {% endfor %}
+                </div>
+            </div>
+        {% else %}
+            <div id="options-{{ unique_id }}" style="z-index: 200; max-height:400px; overflow: auto; box-shadow: 0px 2px 8px rgba(0, 0, 0, 0.2); display: none;">
+                <div id="list-for-search{{ unique_id}}" class="live-search-list list-group ls-{{ unique_id }}">
+                    {% for item in item_list %}
+                        <div style="color: black;" id="option-{{ unique_id }}-{{ loop.index }}" class="option list-group-item destac opt-{{ unique_id }} " tabindex="-1">{{ item }}</div>
+                    {% endfor %}
+                </div>
+
+            </div>
+        {% endif %}
+</div>
+<script type="text/javascript">
+    var index{{ unique_id }} = -1;
+    var selectedText{{ unique_id }}= '';
+
+    function updateVisibleDivs{{ unique_id }}() {
+        var visibleDivs = Array.from(document.querySelectorAll('.ls-{{ unique_id }} .opt-{{unique_id}}')).filter(function(div) {
+            return div.style.display !== 'none';
+        });
+        return visibleDivs;
+    };
+
+    function toggleOptionsDisplay{{ unique_id }}() {
+        var optionsDiv = document.getElementById("options-{{ unique_id }}");
+        if (optionsDiv.style.display === "none" || optionsDiv.style.display === "") {
+            optionsDiv.style.display = "block";
+        } else {
+            optionsDiv.style.display = "none";
+        }
+    };
+
+    document.addEventListener("DOMContentLoaded", function() {
+        var divs = document.querySelectorAll('.ls-{{ unique_id }} .opt-{{unique_id}}');
+        divs.forEach(function(div) {
+            div.setAttribute('data-search-term', div.textContent.toLowerCase());
+        });
+
+        var searchInput = document.querySelector('.lst-{{ unique_id }}');
+        searchInput.addEventListener('keyup', function() {
+            var searchTerm = this.value.toLowerCase();
+            divs.forEach(function(div) {
+                if (div.getAttribute('data-search-term').includes(searchTerm) || searchTerm.length < 1) {
+                    div.style.display = '';
+                } else {
+                    div.style.display = 'none';
+                }
+            });
+
+            index{{ unique_id }} = -1; // Reset index on search
+        });
+
+        var options = document.querySelectorAll(".opt-{{unique_id}}");
+        options.forEach(function(option) {
+            option.addEventListener("click", function() {
+                searchInput.value = this.textContent;
+                selectedText{{ unique_id }} = this.textContent;
+                var visibleDivs = updateVisibleDivs{{unique_id}}();
+                index{{ unique_id }}= visibleDivs.findIndex(div => div.textContent === this.textContent);
+                document.getElementById("options-{{ unique_id }}").style.display = 'none';
+            });
+        });
+
+        searchInput.addEventListener('blur', function(event) {
+            setTimeout(function() {
+                if (!document.activeElement.classList.contains('option')) {
+                    document.getElementById("options-{{ unique_id }}").style.display = 'none';
+                }
+            }, 100);
+        });
+
+    });
+
+    document.addEventListener('keydown', function(event) {
+        var visibleDivs = updateVisibleDivs{{ unique_id }}();
+        if (event.key === "ArrowDown") {
+            index{{ unique_id }} = Math.min(index{{ unique_id }} + 1, visibleDivs.length - 1);
+            try {
+                visibleDivs[index{{ unique_id }}].focus();
+                selectedText{{ unique_id }} = visibleDivs[index{{ unique_id }}].textContent;
+                visibleDivs[index{{ unique_id }}].scrollIntoView({
+                    behavior: "smooth",
+                    block: "nearest"
+                });
+            } catch (err) {
+                console.log(err);
+            }
+        }
+        if (event.key === "ArrowUp") {
+            index{{ unique_id }} = Math.max(index{{ unique_id }} - 1, 0);
+            try {
+                visibleDivs[index{{ unique_id }}].focus();
+                selectedText{{ unique_id }} = visibleDivs[index{{ unique_id }}].textContent;
+                visibleDivs[index{{ unique_id }}].scrollIntoView({
+                    behavior: "smooth",
+                    block: "nearest"
+                });
+            } catch (err) {
+                console.log(err);
+            }
+        }
+        if (event.key === "Enter") {
+            var searchInput = document.querySelector('.lst-{{ unique_id }}');
+            event.preventDefault(); // Prevent form submission
+            if (searchInput.value === selectedText{{ unique_id }}) {
+                var button = document.querySelector('button[accesskey="a"]');
+                if (button) button.click();
+            } else {
+                searchInput.value = selectedText{{ unique_id }};
+                document.getElementById("options-{{ unique_id }}").style.display = 'none';
+            }
+        }
+    });
+
+    function resetSearch{{ unique_id }}() {
+        var searchInput = document.querySelector('.ls-{{ unique_id }}');
+        searchInput.value = '';
+        var divs = document.querySelectorAll('.ls-{{ unique_id }} .opt-{{unique_id}}');
+        divs.forEach(function(div) {
+                div.style.display = 'block';
+            });
+        toggleOptionsDisplay{{ unique_id }}(); // Optionally toggle the display of the options
+    }
+
+    document.addEventListener('click', function(event) {
+        var searchInput = document.querySelector('.lst-{{ unique_id }}');
+        var optionsDiv = document.getElementById("options-{{ unique_id }}");
+        var dropDownButton = document.getElementById("drop-down-{{ unique_id }}" );
+
+        // Verifica se o clique foi fora do searchInput e fora do optionsDiv
+        if (!searchInput.contains(event.target) && !optionsDiv.contains(event.target) && !dropDownButton.contains(event.target)) {
+            // Esconde o optionsDiv se o clique foi fora desses elementos
+            optionsDiv.style.display = 'none';
+        }
+
+        if (searchInput.contains(event.target)) {
+            // Esconde o optionsDiv se o clique foi fora desses elementos
+            optionsDiv.style.display = 'block';
+        }
+    });
+
+</script>
+
+
+{% endmacro %}
+
+
